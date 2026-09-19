@@ -1,0 +1,18 @@
+BEGIN Object
+    Name                 StaffingTerminal
+    ConstructionTime     10.0000
+    Toughness            200.000
+    Price                -1000
+    RenderDepth          1
+    Group                StaticObject
+    BlockedBy            Wall
+    BlockedBy            UtilityStation
+    BlockedBy            StaticObject
+    MadeOf               Wood
+    Properties           StaticObject
+    Properties           Scripted
+    NumSprites           2
+    BEGIN ToolbarSprite  x 0  y 0  w 2  h 2  END
+    BEGIN Sprite         x 0  y 0  w 2  h 2  RotateType 0  TopAligned false  END
+    BEGIN Sprite         x 2  y 0  w 2  h 2  RotateType 0  TopAligned false  END
+END

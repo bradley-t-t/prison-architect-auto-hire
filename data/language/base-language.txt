@@ -1,0 +1,18 @@
+object_StaffingTerminal                    Staffing Terminal
+buildtoolbar_popup_obj_StaffingTerminal    Keeps your staff at the numbers you set. Click the terminal, pick a kind of staff and set how many you want. When you have fewer, new ones arrive at the terminal. It never fires anybody. Arrivals skip the hiring fee and draw wages like any other staff. One terminal covers the whole prison.
+staffing_kind                              Staff: *X
+staffing_level                             Keep *X, have *Y
+staffing_less10                            -10
+staffing_less                              -1
+staffing_more                              +1
+staffing_more10                            +10
+staffing_name_Guard                        Guards
+staffing_name_ArmedGuard                   Armed Guards
+staffing_name_DogHandler                   Dog Handlers
+staffing_name_Sniper                       Snipers
+staffing_name_Workman                      Workmen
+staffing_name_Cook                         Cooks
+staffing_name_Janitor                      Janitors
+staffing_name_Gardener                     Gardeners
+staffing_name_Doctor                       Doctors
+tooltip_StaffingTerminal                   Keeping: *A Guards, *B Armed Guards, *C Dog Handlers, *D Snipers, *E Workmen, *F Cooks, *G Janitors, *H Gardeners, *I Doctors
