@@ -21,7 +21,7 @@ captions = {}
 
 
 bodies = {}         # kind -> dead staff still lying on the map
-MEMBERS = lua.eval("function(alive, dead) local t = {} for _ = 1, alive do t[{}] = 1 end for _ = 1, dead do t[{ Dead = true }] = 1 end return t end")
+MEMBERS = lua.eval("function(alive, dead) local t = {} for _ = 1, alive do t[{ Damage = 0.2 }] = 1 end for _ = 1, dead do t[{ Damage = 1 }] = 1 end return t end")
 others = []         # ids of other terminals on the map
 
 

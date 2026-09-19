@@ -100,6 +100,8 @@ end
 
 -- The head count is the living staff of one kind. A body waiting for the
 -- hearse is still a Guard to the game, and counting it leaves the post empty.
+-- The game keeps no flag for the dead: a body is a member of staff whose
+-- Damage has reached 1.
 -- A search of the map is the dearest thing a script can ask for, so a count
 -- is taken for one kind a round and never while that kind's last batch is
 -- still arriving: what a count orders is bounded by that count.
@@ -112,7 +114,7 @@ local function count(kind)
     end
     local n = 0
     for member in pairs(found) do
-        if member.Dead ~= true then n = n + 1 end
+        if (tonumber(member.Damage) or 0) < 1 then n = n + 1 end
     end
     heads[kind] = n
     short[kind] = math.min(BATCH, math.max(0, target(kind) - n))
