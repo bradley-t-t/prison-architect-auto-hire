@@ -15,16 +15,16 @@ Build one anywhere. Click it and its window has one row of controls:
 | `-10` `-1` `+1` `+10` | Change the number, from 0 to 500 |
 
 The kinds are guards, armed guards, dog handlers, snipers, workmen, cooks,
-janitors, gardeners and doctors. Every ten seconds the terminal counts each
-kind it has a number for, and while one is short a new member of staff arrives
-at the terminal every second and a half. Its screen is blue while it is hiring
-and green when every post is filled, and hovering over it lists every number.
+janitors, gardeners and doctors. Every three seconds the terminal counts the
+living staff of one kind that has a number set, and when that kind is short it
+brings in up to five at the terminal, half a second apart, before it counts
+that kind again. A body waiting for the hearse is not staff. Its screen is
+blue while it is hiring and green when every post is filled, and hovering over
+it lists every number.
 
-It never goes over the number. The head count is taken again the moment
-before each arrival, so staff you hired by hand since the last count are not
-doubled. If an arrival does not show up in the next count, the count cannot be
-trusted and that kind stops hiring until its number is changed. With two
-terminals on the map, only the older one hires.
+A search of the map is the dearest thing a script can ask the game for, so the
+terminal makes one a round and none at all with no numbers set, and it writes
+to its window only when what the window says has changed.
 
 It holds to the game's own cap. The game lets you hire one Armed Guard for
 each Guard Locker standing in an Armoury and caps no other kind of staff, so
@@ -32,6 +32,10 @@ the Armed Guard number stops at your lockers and its readout says how many
 they allow. Sell a locker and the number the terminal works to drops with it.
 A script cannot read what a room is, so an Armoury is taken to be a room that
 also holds a Weapon Rack, which every Armoury must.
+
+Staff you hire by hand in the seconds a batch is arriving can put a kind over
+its number by that batch, five at most. With two terminals on the map, only
+the older one hires.
 
 It never fires anybody. A number set under the head count is met by not
 replacing the ones who leave. One terminal covers the whole prison.

@@ -20,7 +20,8 @@ searches = [0]
 captions = {}
 
 
-cap = [None]        # the most one search may return, to stand in for a count that cannot be trusted
+bodies = {}         # kind -> dead staff still lying on the map
+MEMBERS = lua.eval("function(alive, dead) local t = {} for _ = 1, alive do t[{}] = 1 end for _ = 1, dead do t[{ Dead = true }] = 1 end return t end")
 others = []         # ids of other terminals on the map
 
 
@@ -39,9 +40,7 @@ def find(kind, _reach):
     if kind == "StaffingTerminal":
         return lua.eval("function(ids) local t = {} for _, i in ipairs(ids) do t[{ Id = { i = i } }] = 1 end return t end")(lua.table_from(others))
     searches[0] += 1
-    if cap[0] is not None:
-        return lua.table_from({f"{kind}{i}": "1" for i in range(min(cap[0], staff.get(kind, 0)))})
-    return lua.table_from({f"{kind}{i}": "1" for i in range(staff.get(kind, 0))})
+    return MEMBERS(staff.get(kind, 0), bodies.get(kind, 0))
 
 
 def spawn(kind, _x, _y):
@@ -125,17 +124,31 @@ check("a kind stops at 500", this.TargetArmedGuard == 500)
 
 g.StaffKindClicked()                           # Dog Handlers
 g.StaffMore10Clicked()
-staff["DogHandler"] = 10                       # hired by hand before the terminal's next look
-run(60)
-check("staff hired by hand are not doubled", staff["DogHandler"] == 10)
+staff["DogHandler"] = 10                       # hired by hand as the first batch is ordered
+run(120)
+check("staff hired by hand cost one batch at most", staff["DogHandler"] <= 15)
 
 g.StaffKindClicked()                           # Snipers
-cap[0] = 4
-for _ in range(3):
+for _ in range(2):
     g.StaffMore10Clicked()
-run(300)
-check("a count that cannot see arrivals stops the hiring", staff.get("Sniper", 0) <= 5)
-cap[0] = None
+run(120)
+bodies["Sniper"] = 6
+staff["Sniper"] = 14                           # six shot dead, bodies still on the map
+run(120)
+check("the dead are not counted as staff", staff["Sniper"] == 20)
+bodies["Sniper"] = 0
+
+import random
+random.seed(4)
+before = searches[0]
+for _ in range(2000):                          # a long day: somebody dies every few seconds, often mid-batch
+    if random.random() < 0.3 and staff["Sniper"] > 0:
+        staff["Sniper"] -= 1
+    run(2)
+g.StaffKindClicked(); g.StaffKindClicked(); g.StaffKindClicked(); g.StaffKindClicked(); g.StaffKindClicked(); g.StaffKindClicked()
+run(120)
+check("still hiring after a long run of deaths", staff["Sniper"] == 20 and staff["ArmedGuard"] == 500)
+check("map searches stay near one every three seconds", (searches[0] - before) / 4120.0 <= 0.4)
 
 g.StaffKindClicked()                           # Workmen
 others.append(7)                               # an older terminal exists

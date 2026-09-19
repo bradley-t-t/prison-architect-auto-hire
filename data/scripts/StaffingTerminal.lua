@@ -15,19 +15,22 @@ local KINDS = { "Guard", "ArmedGuard", "DogHandler", "Sniper", "Workman", "Cook"
 local LETTERS = { "A", "B", "C", "D", "E", "F", "G", "H", "I" }
 
 local WHOLE_MAP = 5000
-local COUNT_EVERY = 10          -- seconds between head counts
-local HIRE_GAP = 1.5            -- seconds between two arrivals, so a big order trickles in
+local ROUND = 3                 -- seconds between head counts, one kind of staff a round
+local BATCH = 5                 -- the most one head count may bring in
+local HIRE_GAP = 0.5            -- seconds between two arrivals
+local LEAD_EVERY = 30           -- seconds between looks for an older terminal
 local MOST = 500                -- ceiling on one kind
 
 local ready = false
-local countTimer = math.random() * COUNT_EVERY
+local roundTimer = math.random() * ROUND
 local hireTimer = 0
-local chosen = 1                -- which kind the buttons are set to
-local short = {}                -- kind -> how many are still owed
-local heads = {}                -- kind -> the last head count
-local awaited = {}              -- kind -> the head count the last arrival should have made
-local stopped = {}              -- kind -> true once an arrival went uncounted
+local leadTimer = LEAD_EVERY
 local leader = true
+local turn = 0                  -- the kind counted last
+local chosen = 1                -- which kind the buttons are set to
+local short = {}                -- kind -> arrivals still owed from its last head count
+local heads = {}                -- kind -> the last head count
+local shown = ""                -- what the window and tooltip last said
 
 local allowed = {}              -- kind -> the most the game itself would let you hire
 
@@ -71,32 +74,48 @@ local function target(kind)
     return math.min(setting(kind), limit(kind))
 end
 
+-- Writing a caption or a tooltip is a call into the game, so nothing is
+-- written that the window already says.
 local function show()
     local kind = KINDS[chosen]
+    local owed = 0
+    local line = { "tooltip_StaffingTerminal" }
+    for i, each in ipairs(KINDS) do
+        owed = owed + math.max(0, target(each) - (heads[each] or target(each)))
+        line[#line + 1] = target(each)
+        line[#line + 1] = LETTERS[i]
+    end
+    local says = table.concat(line, ",") .. "|" .. kind .. "|" .. (heads[kind] or 0) .. "|" .. limit(kind) .. "|" .. owed
+    if says == shown then return end
+    shown = says
     this.SetInterfaceCaption("StaffKind", "staffing_kind", "staffing_name_" .. kind, "X")
     if kind == "ArmedGuard" then
         this.SetInterfaceCaption("StaffLevel", "staffing_level_lockers", target(kind), "X", heads[kind] or 0, "Y", limit(kind), "Z")
     else
         this.SetInterfaceCaption("StaffLevel", "staffing_level", target(kind), "X", heads[kind] or 0, "Y")
     end
-    local owed = 0
-    local line = { "tooltip_StaffingTerminal" }
-    for i, each in ipairs(KINDS) do
-        owed = owed + (short[each] or 0)
-        line[#line + 1] = target(each)
-        line[#line + 1] = LETTERS[i]
-    end
     this.Tooltip = line
     this.SubType = owed > 0 and 1 or 0
 end
 
+-- The head count is the living staff of one kind. A body waiting for the
+-- hearse is still a Guard to the game, and counting it leaves the post empty.
+-- A search of the map is the dearest thing a script can ask for, so a count
+-- is taken for one kind a round and never while that kind's last batch is
+-- still arriving: what a count orders is bounded by that count.
 local function count(kind)
     if kind == "ArmedGuard" then allowed[kind] = armouryLockers() end
+    local found = Find(kind, WHOLE_MAP)
+    if not found then
+        short[kind] = 0
+        return
+    end
     local n = 0
-    for _ in pairs(Find(kind, WHOLE_MAP) or {}) do n = n + 1 end
+    for member in pairs(found) do
+        if member.Dead ~= true then n = n + 1 end
+    end
     heads[kind] = n
-    if awaited[kind] and n >= awaited[kind] then awaited[kind] = nil end
-    short[kind] = math.max(0, target(kind) - n)
+    short[kind] = math.min(BATCH, math.max(0, target(kind) - n))
 end
 
 local function change(by)
@@ -104,7 +123,6 @@ local function change(by)
     if kind == "ArmedGuard" then allowed[kind] = armouryLockers() end
     local wanted = math.min(limit(kind), math.max(0, target(kind) + by))
     Object.SetProperty("Target" .. kind, wanted)
-    stopped[kind], awaited[kind] = nil, nil
     count(kind)
     show()
 end
@@ -120,11 +138,17 @@ function StaffLessClicked() change(-1) end
 function StaffMoreClicked() change(1) end
 function StaffMore10Clicked() change(10) end
 
-local function headCount()
-    for _, kind in ipairs(KINDS) do
-        if setting(kind) > 0 then count(kind) else short[kind] = 0 end
+-- Counts the next kind that has a number set and no batch still arriving.
+local function nextCount()
+    for _ = 1, #KINDS do
+        turn = turn % #KINDS + 1
+        local kind = KINDS[turn]
+        if setting(kind) > 0 and (short[kind] or 0) == 0 then
+            count(kind)
+            show()
+            return
+        end
     end
-    show()
 end
 
 -- Only one terminal hires. With two on the map each would see the same gap
@@ -132,30 +156,20 @@ end
 local function inCharge()
     local mine = tonumber(this.Id.i) or 0
     for other in pairs(Find("StaffingTerminal", WHOLE_MAP) or {}) do
-        local theirs = tonumber(other.Id.i) or 0
-        if theirs < mine then return false end
+        local theirs = tonumber(other.Id.i)
+        if theirs and theirs < mine then return false end
     end
     return true
 end
 
--- The head count is taken again the moment before each arrival, so staff you
--- hired by hand since the last count are never doubled. An arrival the next
--- count cannot see means the count cannot be trusted, and that kind stops
--- rather than filling the map.
 local function hireOne()
     for _, kind in ipairs(KINDS) do
-        if (short[kind] or 0) > 0 and not stopped[kind] then
-            local expected = awaited[kind]
-            count(kind)
-            if expected and heads[kind] < expected then
-                stopped[kind] = true
-                short[kind] = 0
-            elseif heads[kind] < target(kind) and Spawn(kind, this.Pos.x + math.random() - 0.5, this.Pos.y + 1) then
-                awaited[kind] = heads[kind] + 1
+        if (short[kind] or 0) > 0 then
+            short[kind] = short[kind] - 1
+            if heads[kind] < target(kind) and Spawn(kind, this.Pos.x + math.random() - 0.5, this.Pos.y + 1) then
                 heads[kind] = heads[kind] + 1
-                short[kind] = math.max(0, target(kind) - heads[kind])
             else
-                awaited[kind] = nil
+                short[kind] = 0
             end
             show()
             return
@@ -184,17 +198,22 @@ function Update(timePassed)
     if not ready then
         addControls()
         ready = true
-        headCount()
+        show()
     end
-    countTimer = countTimer + timePassed
-    if countTimer >= COUNT_EVERY then
-        countTimer = 0
+    leadTimer = leadTimer + timePassed
+    if leadTimer >= LEAD_EVERY then
+        leadTimer = 0
         leader = inCharge()
-        headCount()
+    end
+    if not leader then return end
+    roundTimer = roundTimer + timePassed
+    if roundTimer >= ROUND then
+        roundTimer = 0
+        nextCount()
     end
     hireTimer = hireTimer + timePassed
     if hireTimer >= HIRE_GAP then
         hireTimer = 0
-        if leader then hireOne() end
+        hireOne()
     end
 end
