@@ -15,8 +15,9 @@ Build one anywhere. Click it and its window has one row of controls:
 | `-10` `-1` `+1` `+10` | Change the number, from 0 to 500 |
 
 The kinds are guards, armed guards, dog handlers, snipers, workmen, cooks,
-janitors, gardeners and doctors. Every three seconds the terminal counts the
-living staff of one kind that has a number set, and when that kind is short it
+janitors, gardeners and doctors. Every three seconds while any kind is short, and every eight once every post
+is filled, the terminal counts the living staff of one kind that has a number
+set, and when that kind is short it
 brings in up to five at the terminal, half a second apart, before it counts
 that kind again. A body waiting for the hearse is not staff. Its screen is
 blue while it is hiring and green when every post is filled, and hovering over

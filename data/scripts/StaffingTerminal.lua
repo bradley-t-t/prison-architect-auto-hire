@@ -15,7 +15,8 @@ local KINDS = { "Guard", "ArmedGuard", "DogHandler", "Sniper", "Workman", "Cook"
 local LETTERS = { "A", "B", "C", "D", "E", "F", "G", "H", "I" }
 
 local WHOLE_MAP = 5000
-local ROUND = 3                 -- seconds between head counts, one kind of staff a round
+local ROUND = 3                 -- seconds between head counts, one kind of staff a round, while a kind is short
+local RESTING_ROUND = 8         -- the same with every post filled, when nothing is waiting on a count
 local BATCH = 5                 -- the most one head count may bring in
 local HIRE_GAP = 0.5            -- seconds between two arrivals
 local LEAD_EVERY = 30           -- seconds between looks for an older terminal
@@ -31,6 +32,8 @@ local chosen = 1                -- which kind the buttons are set to
 local short = {}                -- kind -> arrivals still owed from its last head count
 local heads = {}                -- kind -> the last head count
 local shown = ""                -- what the window and tooltip last said
+local wasShort = {}             -- kind -> whether its last head count came up short
+local hiring = true             -- whether any kind did
 
 local allowed = {}              -- kind -> the most the game itself would let you hire
 
@@ -126,6 +129,8 @@ local function change(by)
     local wanted = math.min(limit(kind), math.max(0, target(kind) + by))
     Object.SetProperty("Target" .. kind, wanted)
     count(kind)
+    wasShort[kind] = (short[kind] or 0) > 0
+    hiring = hiring or wasShort[kind]
     show()
 end
 
@@ -147,6 +152,9 @@ local function nextCount()
         local kind = KINDS[turn]
         if setting(kind) > 0 and (short[kind] or 0) == 0 then
             count(kind)
+            wasShort[kind] = (short[kind] or 0) > 0
+            hiring = false
+            for _, each in ipairs(KINDS) do hiring = hiring or wasShort[each] == true end
             show()
             return
         end
@@ -209,7 +217,7 @@ function Update(timePassed)
     end
     if not leader then return end
     roundTimer = roundTimer + timePassed
-    if roundTimer >= ROUND then
+    if roundTimer >= (hiring and ROUND or RESTING_ROUND) then
         roundTimer = 0
         nextCount()
     end
