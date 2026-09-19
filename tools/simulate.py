@@ -20,8 +20,16 @@ searches = [0]
 captions = {}
 
 
+cap = [None]        # the most one search may return, to stand in for a count that cannot be trusted
+others = []         # ids of other terminals on the map
+
+
 def find(kind, _reach):
+    if kind == "StaffingTerminal":
+        return lua.eval("function(ids) local t = {} for _, i in ipairs(ids) do t[{ Id = { i = i } }] = 1 end return t end")(lua.table_from(others))
     searches[0] += 1
+    if cap[0] is not None:
+        return lua.table_from({f"{kind}{i}": "1" for i in range(min(cap[0], staff.get(kind, 0)))})
     return lua.table_from({f"{kind}{i}": "1" for i in range(staff.get(kind, 0))})
 
 
@@ -31,7 +39,7 @@ def spawn(kind, _x, _y):
 
 
 g = lua.globals()
-this = lua.eval("{ Pos = { x = 10, y = 10 } }")
+this = lua.eval("{ Pos = { x = 10, y = 10 }, Id = { i = 50 } }")
 this.SetInterfaceCaption = lambda name, *args: captions.__setitem__(name, args)
 g.this = this
 g.Object = lua.table_from({
@@ -87,6 +95,27 @@ check("the caption names the kind", captions["StaffKind"][1] == "staffing_name_A
 for _ in range(60):
     g.StaffMore10Clicked()
 check("a kind stops at 500", this.TargetArmedGuard == 500)
+
+g.StaffKindClicked()                           # Dog Handlers
+g.StaffMore10Clicked()
+staff["DogHandler"] = 10                       # hired by hand before the terminal's next look
+run(60)
+check("staff hired by hand are not doubled", staff["DogHandler"] == 10)
+
+g.StaffKindClicked()                           # Snipers
+cap[0] = 4
+for _ in range(3):
+    g.StaffMore10Clicked()
+run(300)
+check("a count that cannot see arrivals stops the hiring", staff.get("Sniper", 0) <= 5)
+cap[0] = None
+
+g.StaffKindClicked()                           # Workmen
+others.append(7)                               # an older terminal exists
+run(15)
+g.StaffMore10Clicked()
+run(60)
+check("a second terminal hires nobody", staff.get("Workman", 0) == 0)
 
 print("failures:", len(failures))
 sys.exit(1 if failures else 0)

@@ -20,6 +20,12 @@ kind it has a number for, and while one is short a new member of staff arrives
 at the terminal every second and a half. Its screen is blue while it is hiring
 and green when every post is filled, and hovering over it lists every number.
 
+It never goes over the number. The head count is taken again the moment
+before each arrival, so staff you hired by hand since the last count are not
+doubled. If an arrival does not show up in the next count, the count cannot be
+trusted and that kind stops hiring until its number is changed. With two
+terminals on the map, only the older one hires.
+
 It never fires anybody. A number set under the head count is met by not
 replacing the ones who leave. One terminal covers the whole prison.
 

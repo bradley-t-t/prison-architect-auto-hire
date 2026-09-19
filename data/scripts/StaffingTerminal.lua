@@ -25,6 +25,9 @@ local hireTimer = 0
 local chosen = 1                -- which kind the buttons are set to
 local short = {}                -- kind -> how many are still owed
 local heads = {}                -- kind -> the last head count
+local awaited = {}              -- kind -> the head count the last arrival should have made
+local stopped = {}              -- kind -> true once an arrival went uncounted
+local leader = true
 
 local function target(kind)
     return tonumber(this["Target" .. kind]) or 0
@@ -49,6 +52,7 @@ local function count(kind)
     local n = 0
     for _ in pairs(Find(kind, WHOLE_MAP) or {}) do n = n + 1 end
     heads[kind] = n
+    if awaited[kind] and n >= awaited[kind] then awaited[kind] = nil end
     short[kind] = math.max(0, target(kind) - n)
 end
 
@@ -56,6 +60,7 @@ local function change(by)
     local kind = KINDS[chosen]
     local wanted = math.min(MOST, math.max(0, target(kind) + by))
     Object.SetProperty("Target" .. kind, wanted)
+    stopped[kind], awaited[kind] = nil, nil
     count(kind)
     show()
 end
@@ -78,12 +83,35 @@ local function headCount()
     show()
 end
 
+-- Only one terminal hires. With two on the map each would see the same gap
+-- and fill it, so the one with the lowest id does the work and the rest rest.
+local function inCharge()
+    local mine = tonumber(this.Id.i) or 0
+    for other in pairs(Find("StaffingTerminal", WHOLE_MAP) or {}) do
+        local theirs = tonumber(other.Id.i) or 0
+        if theirs < mine then return false end
+    end
+    return true
+end
+
+-- The head count is taken again the moment before each arrival, so staff you
+-- hired by hand since the last count are never doubled. An arrival the next
+-- count cannot see means the count cannot be trusted, and that kind stops
+-- rather than filling the map.
 local function hireOne()
     for _, kind in ipairs(KINDS) do
-        if (short[kind] or 0) > 0 then
-            short[kind] = short[kind] - 1
-            if Spawn(kind, this.Pos.x + math.random() - 0.5, this.Pos.y + 1) then
-                heads[kind] = (heads[kind] or 0) + 1
+        if (short[kind] or 0) > 0 and not stopped[kind] then
+            local expected = awaited[kind]
+            count(kind)
+            if expected and heads[kind] < expected then
+                stopped[kind] = true
+                short[kind] = 0
+            elseif heads[kind] < target(kind) and Spawn(kind, this.Pos.x + math.random() - 0.5, this.Pos.y + 1) then
+                awaited[kind] = heads[kind] + 1
+                heads[kind] = heads[kind] + 1
+                short[kind] = math.max(0, target(kind) - heads[kind])
+            else
+                awaited[kind] = nil
             end
             show()
             return
@@ -117,11 +145,12 @@ function Update(timePassed)
     countTimer = countTimer + timePassed
     if countTimer >= COUNT_EVERY then
         countTimer = 0
+        leader = inCharge()
         headCount()
     end
     hireTimer = hireTimer + timePassed
     if hireTimer >= HIRE_GAP then
         hireTimer = 0
-        hireOne()
+        if leader then hireOne() end
     end
 end
