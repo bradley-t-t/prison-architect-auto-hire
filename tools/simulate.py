@@ -24,7 +24,18 @@ cap = [None]        # the most one search may return, to stand in for a count th
 others = []         # ids of other terminals on the map
 
 
+lockers = {"armoury": 0, "elsewhere": 0}      # Guard Lockers in the Armoury and in a room with no Weapon Rack
+PLACED = lua.eval("function(x, n) local t = {} for _ = 1, n do t[{ Pos = { x = x, y = 1 } }] = 1 end return t end")
+
+
 def find(kind, _reach):
+    if kind == "WeaponRack":
+        return PLACED(1, 1)
+    if kind == "GuardLocker":
+        both = PLACED(1, lockers["armoury"])
+        for k in PLACED(2, lockers["elsewhere"]):
+            both[k] = 1
+        return both
     if kind == "StaffingTerminal":
         return lua.eval("function(ids) local t = {} for _, i in ipairs(ids) do t[{ Id = { i = i } }] = 1 end return t end")(lua.table_from(others))
     searches[0] += 1
@@ -47,6 +58,7 @@ g.Object = lua.table_from({
     "Spawn": spawn,
     "SetProperty": lambda name, value: this.__setitem__(name, value),
 })
+g.World = lua.eval("{ GetCell = function(x, y) return { Room = { i = x, u = x + 100 } } end }")
 g.Interface = lua.table_from({"AddComponent": lambda *a: None})
 lua.execute(open(SCRIPT).read())
 
@@ -87,6 +99,21 @@ run(120)
 check("a lower number fires nobody", staff["Guard"] == 12)
 
 g.StaffKindClicked()                           # Armed Guards
+lockers["elsewhere"] = 40
+g.StaffMore10Clicked()
+run(60)
+check("no lockers in an Armoury: no Armed Guards", staff.get("ArmedGuard", 0) == 0 and this.TargetArmedGuard == 0)
+lockers["armoury"] = 6
+g.StaffMore10Clicked()
+run(60)
+check("six lockers: the number stops at 6", this.TargetArmedGuard == 6 and staff.get("ArmedGuard") == 6)
+lockers["armoury"] = 4
+staff["ArmedGuard"] = 3
+run(60)
+check("a locker sold lowers the cap", staff["ArmedGuard"] == 4)
+lockers["armoury"] = 600
+staff["ArmedGuard"] = 0
+this.TargetArmedGuard = 0
 g.StaffMore10Clicked()
 run(60)
 check("the next kind is set on its own", staff.get("ArmedGuard") == 10 and staff["Guard"] == 12)

@@ -29,14 +29,56 @@ local awaited = {}              -- kind -> the head count the last arrival shoul
 local stopped = {}              -- kind -> true once an arrival went uncounted
 local leader = true
 
-local function target(kind)
+local allowed = {}              -- kind -> the most the game itself would let you hire
+
+local function roomOf(object)
+    local cell = World.GetCell(math.floor(object.Pos.x), math.floor(object.Pos.y))
+    local room = cell and cell.Room
+    if not room or (tonumber(room.i) or -1) < 0 then return nil end
+    return room.i .. ":" .. room.u
+end
+
+-- The game lets you hire one Armed Guard for each Guard Locker standing in an
+-- Armoury, and caps no other kind here. A script cannot read what a room is,
+-- so an Armoury is taken to be a room that also holds a Weapon Rack, which
+-- every Armoury must.
+local function armouryLockers()
+    local armouries = {}
+    for rack in pairs(Find("WeaponRack", WHOLE_MAP) or {}) do
+        local room = roomOf(rack)
+        if room then armouries[room] = true end
+    end
+    local n = 0
+    for locker in pairs(Find("GuardLocker", WHOLE_MAP) or {}) do
+        local room = roomOf(locker)
+        if room and armouries[room] then n = n + 1 end
+    end
+    return n
+end
+
+local function limit(kind)
+    if kind == "ArmedGuard" then return math.min(MOST, allowed[kind] or 0) end
+    return MOST
+end
+
+local function setting(kind)
     return tonumber(this["Target" .. kind]) or 0
+end
+
+-- What the terminal works to: the number set, held under the game's own cap
+-- even when the cap has dropped since, as when a locker is sold.
+local function target(kind)
+    return math.min(setting(kind), limit(kind))
 end
 
 local function show()
     local kind = KINDS[chosen]
     this.SetInterfaceCaption("StaffKind", "staffing_kind", "staffing_name_" .. kind, "X")
-    this.SetInterfaceCaption("StaffLevel", "staffing_level", target(kind), "X", heads[kind] or 0, "Y")
+    if kind == "ArmedGuard" then
+        this.SetInterfaceCaption("StaffLevel", "staffing_level_lockers", target(kind), "X", heads[kind] or 0, "Y", limit(kind), "Z")
+    else
+        this.SetInterfaceCaption("StaffLevel", "staffing_level", target(kind), "X", heads[kind] or 0, "Y")
+    end
     local owed = 0
     local line = { "tooltip_StaffingTerminal" }
     for i, each in ipairs(KINDS) do
@@ -49,6 +91,7 @@ local function show()
 end
 
 local function count(kind)
+    if kind == "ArmedGuard" then allowed[kind] = armouryLockers() end
     local n = 0
     for _ in pairs(Find(kind, WHOLE_MAP) or {}) do n = n + 1 end
     heads[kind] = n
@@ -58,7 +101,8 @@ end
 
 local function change(by)
     local kind = KINDS[chosen]
-    local wanted = math.min(MOST, math.max(0, target(kind) + by))
+    if kind == "ArmedGuard" then allowed[kind] = armouryLockers() end
+    local wanted = math.min(limit(kind), math.max(0, target(kind) + by))
     Object.SetProperty("Target" .. kind, wanted)
     stopped[kind], awaited[kind] = nil, nil
     count(kind)
@@ -78,7 +122,7 @@ function StaffMore10Clicked() change(10) end
 
 local function headCount()
     for _, kind in ipairs(KINDS) do
-        if target(kind) > 0 then count(kind) else short[kind] = 0 end
+        if setting(kind) > 0 then count(kind) else short[kind] = 0 end
     end
     show()
 end

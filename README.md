@@ -26,6 +26,13 @@ doubled. If an arrival does not show up in the next count, the count cannot be
 trusted and that kind stops hiring until its number is changed. With two
 terminals on the map, only the older one hires.
 
+It holds to the game's own cap. The game lets you hire one Armed Guard for
+each Guard Locker standing in an Armoury and caps no other kind of staff, so
+the Armed Guard number stops at your lockers and its readout says how many
+they allow. Sell a locker and the number the terminal works to drops with it.
+A script cannot read what a room is, so an Armoury is taken to be a room that
+also holds a Weapon Rack, which every Armoury must.
+
 It never fires anybody. A number set under the head count is met by not
 replacing the ones who leave. One terminal covers the whole prison.
 

@@ -105,7 +105,7 @@ def materials_text():
 
 def language_text():
     popup = ("Keeps your staff at the numbers you set. Click the terminal, pick a kind of staff and set how "
-             "many you want. When you have fewer, new ones arrive at the terminal. It never fires anybody. "
+             "many you want. Armed Guards stop at your Guard Lockers, as they do when you hire them yourself. When you have fewer, new ones arrive at the terminal. It never fires anybody. "
              "Arrivals skip the hiring fee and draw wages like any other staff. One terminal covers the "
              "whole prison.")
     rows = [
@@ -113,6 +113,7 @@ def language_text():
         ("buildtoolbar_popup_obj_StaffingTerminal", popup),
         ("staffing_kind", "Staff: *X"),
         ("staffing_level", "Keep *X, have *Y"),
+        ("staffing_level_lockers", "Keep *X, have *Y, lockers allow *Z"),
         ("staffing_less10", "-10"),
         ("staffing_less", "-1"),
         ("staffing_more", "+1"),

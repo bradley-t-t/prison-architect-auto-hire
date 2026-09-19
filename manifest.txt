@@ -1,4 +1,4 @@
 Name                 "Auto Hire"
 Author               Trenton
 Description          "A Staffing Terminal that keeps your staff at the numbers you set. Click it, pick a kind of staff and set how many you want: guards, armed guards, dog handlers, snipers, workmen, cooks, janitors, gardeners and doctors. When you have fewer, new ones arrive at the terminal. It never fires anybody. One terminal covers the whole prison."
-Version              1.1
+Version              1.2
