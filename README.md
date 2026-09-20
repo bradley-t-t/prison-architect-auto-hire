@@ -41,11 +41,16 @@ the older one hires.
 It never fires anybody. A number set under the head count is met by not
 replacing the ones who leave. One terminal covers the whole prison.
 
+## What it costs
+
+Every arrival pays the game's own hiring fee out of the prison's balance, and
+draws wages like any other staff. The terminal hires whether or not the money
+is there, so a big order on a small balance puts you in the red.
+
 ## What it cannot do
 
-A script cannot reach the prison's money, so an arrival skips the hiring fee.
-Wages are paid like any other staff. It cannot read research either, so a
-number set for a kind that is not unlocked yet is still filled.
+It cannot read research, so a number set for a kind that is not unlocked yet is
+still filled.
 
 ## Layout
 

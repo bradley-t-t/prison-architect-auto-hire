@@ -3,8 +3,9 @@
 -- in at the terminal. It never fires anybody: a number set under the head
 -- count is met by not replacing the ones who leave.
 --
--- A script cannot reach the prison's money, so nobody brought in here pays a
--- hiring fee. They are staff like any other from then on, wages included.
+-- Everyone brought in here pays the game's own hiring fee, taken from the
+-- prison's balance as they arrive. They are staff like any other from then
+-- on, wages included.
 
 local Find = Object.GetNearbyObjects
 local Spawn = Object.Spawn
@@ -172,12 +173,24 @@ local function inCharge()
     return true
 end
 
+-- The game's own price for hiring one of each kind.
+local FEES = { Guard = 500, ArmedGuard = 1500, DogHandler = 500, Sniper = 2000, Workman = 500,
+               Cook = 500, Janitor = 500, Gardener = 500, Doctor = 1000 }
+
+local function payFee(kind)
+    local balance = tonumber(World.Balance)
+    if balance ~= nil then
+        World.Balance = balance - (FEES[kind] or 0)
+    end
+end
+
 local function hireOne()
     for _, kind in ipairs(KINDS) do
         if (short[kind] or 0) > 0 then
             short[kind] = short[kind] - 1
             if heads[kind] < target(kind) and Spawn(kind, this.Pos.x + math.random() - 0.5, this.Pos.y + 1) then
                 heads[kind] = heads[kind] + 1
+                payFee(kind)
             else
                 short[kind] = 0
             end

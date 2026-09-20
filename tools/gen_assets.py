@@ -107,7 +107,7 @@ def materials_text():
 def language_text():
     popup = ("Keeps your staff at the numbers you set. Click the terminal, pick a kind of staff and set how "
              "many you want. Armed Guards stop at your Guard Lockers, as they do when you hire them yourself. When you have fewer, new ones arrive at the terminal. It never fires anybody. "
-             "Arrivals skip the hiring fee and draw wages like any other staff. One terminal covers the "
+             "Arrivals pay the game's hiring fee and draw wages like any other staff. One terminal covers the "
              "whole prison.")
     rows = [
         ("object_StaffingTerminal", "Staffing Terminal"),

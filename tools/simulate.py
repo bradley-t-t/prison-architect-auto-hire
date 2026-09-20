@@ -57,7 +57,7 @@ g.Object = lua.table_from({
     "Spawn": spawn,
     "SetProperty": lambda name, value: this.__setitem__(name, value),
 })
-g.World = lua.eval("{ GetCell = function(x, y) return { Room = { i = x, u = x + 100 } } end }")
+g.World = lua.eval("{ Balance = 100000, GetCell = function(x, y) return { Room = { i = x, u = x + 100 } } end }")
 g.Interface = lua.table_from({"AddComponent": lambda *a: None})
 lua.execute(open(SCRIPT).read())
 
@@ -86,6 +86,7 @@ for _ in range(12):
     g.StaffMoreClicked()                       # Guards to 12
 run(60)
 check("guards brought up from 3 to 12", staff["Guard"] == 12)
+check("and each of the nine paid the $500 hiring fee", g.World.Balance == 100000 - 9 * 500)
 run(120)
 check("and held there", staff["Guard"] == 12)
 
